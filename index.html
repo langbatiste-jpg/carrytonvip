@@ -1,0 +1,416 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0B1020"><style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style></head><body><title>Carry Ton VIP, le match</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap">
+<style>
+/* Layout: one-screen phone app. Night stadium ground, court-blue court, lime ball; LED scoreboard on top, tap zone at the bottom. Presenter screen at #ecran. */
+:root{
+  --night:#0B1020; --night2:#141B33; --court:#2346C8; --ball:#DCF24E; --chalk:#F3F0E7; --signal:#FF5A36; --grey:#8A93A8;
+  --display:Anton,'Arial Narrow',Impact,sans-serif; --serif:'Instrument Serif',Georgia,serif; --sans:'Space Grotesk',Arial,sans-serif; --mono:'JetBrains Mono','Courier New',monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--night);color:var(--chalk);font-family:var(--sans);overflow:hidden;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--night)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
+.app{height:100%;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;box-sizing:border-box;gap:10px}
+.screen{flex:1;min-height:0;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--grey)}
+.mark{display:flex;align-items:center;gap:8px}
+/* intro */
+.intro{justify-content:center}
+.intro h1{font-family:var(--display);font-weight:400;font-size:clamp(56px,17vw,92px);line-height:.88;margin:0;text-transform:uppercase}
+.intro h1 span{background:var(--ball);color:var(--night);padding:0 .08em}
+.intro .lead{font-family:var(--serif);font-style:italic;font-size:22px;line-height:1.2;margin:0;color:var(--chalk)}
+.rules{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.rules li{display:grid;grid-template-columns:28px 1fr;gap:8px;font-size:15px;line-height:1.35;color:#D9DCE6}
+.rules b{font-family:var(--mono);color:var(--ball)}
+label.f{display:flex;flex-direction:column;gap:6px}
+input#pseudo{background:var(--night2);border:2px solid #2A3350;border-radius:10px;padding:12px 14px;font:500 18px var(--sans);color:var(--chalk)}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick button{background:var(--night2);border:2px solid #2A3350;border-radius:10px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.pick button[aria-pressed="true"]{border-color:var(--ball);background:#1A2340}
+.pick .n{font-family:var(--display);font-size:22px;text-transform:uppercase}
+.pick .s{font-family:var(--mono);font-size:11px;color:var(--grey)}
+.cta{background:var(--ball);color:var(--night);border:0;border-radius:12px;padding:16px;font-family:var(--display);font-size:24px;text-transform:uppercase;letter-spacing:.5px}
+.cta:active{transform:translateY(1px)}
+.ghost{background:transparent;border:2px solid #2A3350;border-radius:12px;padding:12px;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1px}
+.foot{font-family:var(--mono);font-size:10px;color:var(--grey);line-height:1.4}
+/* scoreboard */
+.board{background:#05070D;border:4px solid #1B2135;border-radius:8px;font-family:var(--mono);font-weight:700;position:relative;overflow:hidden}
+.board::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,transparent 1.1px,rgba(5,7,13,.5) 1.6px);background-size:4px 4px;pointer-events:none}
+.row{display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:8px;padding:7px 12px;font-size:16px;letter-spacing:1px;color:#FFF3D6}
+.row+.row{border-top:3px solid #1B2135}
+.row .pts{font-size:24px;color:var(--ball);min-width:3ch;text-align:right;font-variant-numeric:tabular-nums}
+.row.opp .pts{color:var(--signal)}
+.serve{width:10px;height:10px;background:var(--ball)}
+.status{position:relative;z-index:1;text-align:center;font-size:12px;letter-spacing:3px;color:var(--signal);padding:4px;border-top:3px solid #1B2135;min-height:1.4em}
+/* court */
+.courtwrap{flex:1;min-height:0;position:relative;border-radius:10px;overflow:hidden;touch-action:manipulation;user-select:none}
+canvas{display:block;width:100%;height:100%}
+.hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--chalk);opacity:.85;pointer-events:none}
+.flash{position:absolute;left:0;right:0;top:42%;text-align:center;font-family:var(--display);font-size:clamp(34px,11vw,56px);text-transform:uppercase;pointer-events:none;text-shadow:0 3px 0 rgba(0,0,0,.35)}
+/* question */
+.q{position:absolute;inset:0;background:rgba(11,16,32,.94);display:flex;flex-direction:column;gap:12px;padding:16px;box-sizing:border-box;overflow:auto}
+.q .tag{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:2px;color:var(--ball)}
+.q h2{font-family:var(--display);font-weight:400;font-size:clamp(24px,7vw,32px);line-height:1.05;margin:0;text-transform:uppercase;text-wrap:balance}
+.timer{height:6px;background:#2A3350;border-radius:3px;overflow:hidden}
+.timer i{display:block;height:100%;background:var(--ball);transform-origin:left}
+.opts{display:grid;gap:8px}
+.opts button{background:var(--night2);border:2px solid #2A3350;border-radius:10px;padding:13px 14px;text-align:left;font-size:16px;font-weight:500;line-height:1.25}
+.opts button.ok{border-color:var(--ball);background:#2B3414}
+.opts button.ko{border-color:var(--signal);background:#3A1A14}
+.why{font-size:14px;line-height:1.4;color:#D9DCE6;margin:0}
+/* end */
+.end{justify-content:center}
+.end h2{font-family:var(--display);font-weight:400;font-size:clamp(48px,14vw,78px);line-height:.9;margin:0;text-transform:uppercase}
+.end .sub{font-family:var(--serif);font-style:italic;font-size:24px;margin:0;color:var(--ball)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{border-top:2px solid var(--chalk);padding-top:6px;display:flex;flex-direction:column;gap:2px}
+.stat span{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--grey);text-transform:uppercase}
+.stat b{font-family:var(--display);font-weight:400;font-size:30px;font-variant-numeric:tabular-nums}
+.code{background:var(--ball);color:var(--night);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-weight:700}
+.code b{font-size:22px;letter-spacing:3px}
+/* presenter */
+.stage{position:fixed;inset:0;background:var(--night);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:4vw;align-items:center;padding:4vh max(5vw,env(safe-area-inset-left,0px)) 4vh max(5vw,env(safe-area-inset-right,0px));box-sizing:border-box;overflow:auto}
+.stage h1{font-family:var(--display);font-weight:400;font-size:clamp(48px,8.5vw,150px);line-height:.86;margin:0;text-transform:uppercase}
+.stage h1 span{color:var(--ball)}
+.stage p{font-family:var(--serif);font-style:italic;font-size:clamp(20px,2.6vw,44px);line-height:1.15;margin:2vh 0 0}
+.stage ol{margin:3vh 0 0;padding:0;list-style:none;display:grid;gap:1.2vh;font-size:clamp(14px,1.5vw,26px)}
+.stage ol li{display:grid;grid-template-columns:2.2em 1fr;gap:.6em}
+.stage ol b{font-family:var(--mono);color:var(--ball)}
+.qr{background:var(--chalk);border-radius:2vw;padding:2vw;display:flex;flex-direction:column;gap:1.5vh;align-items:center;justify-self:center;width:min(36vw,70vh)}
+.qr svg{width:100%;height:auto;display:block}
+.qr .lbl{font-family:var(--mono);font-weight:700;color:var(--night);font-size:clamp(12px,1.4vw,22px);letter-spacing:2px}
+.clock{display:flex;align-items:center;gap:1.5vw;margin-top:3vh}
+.clock b{font-family:var(--display);font-weight:400;font-size:clamp(40px,6vw,110px);font-variant-numeric:tabular-nums;color:var(--ball)}
+@media (max-width:760px){.stage{grid-template-columns:1fr}.qr{width:min(80vw,60vh)}}
+
+.stage{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);align-items:stretch;gap:3vw}
+.lcol{display:flex;flex-direction:column;gap:2.2vh;justify-content:center;min-width:0}
+.lcol h1{font-size:clamp(36px,4.2vw,84px)}
+.lcol .qr{justify-self:start;width:min(22vw,36vh);padding:1.2vw}
+.cbtn{display:flex;flex-direction:column;gap:8px}
+.cbtn .cta{font-size:clamp(16px,1.5vw,26px);padding:12px 18px}
+.clock{margin-top:0}.clock b{font-size:clamp(36px,5vw,96px)}
+.rcol{display:flex;flex-direction:column;gap:1.6vh;min-width:0;min-height:0}
+.bhead{display:flex;justify-content:space-between;align-items:baseline;gap:16px;border-bottom:4px solid var(--ball);padding-bottom:1vh}
+.bhead h2{font-family:var(--display);font-weight:400;font-size:clamp(32px,4vw,76px);line-height:1;margin:0;text-transform:uppercase}
+.bhead .eyebrow{font-size:clamp(12px,1.2vw,22px);color:var(--chalk)}
+.stage .lb{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.8vh;flex:1;min-height:0;overflow:hidden}
+.stage .lb li{display:grid;grid-template-columns:2.6em minmax(0,1fr) auto auto;gap:1.2vw;align-items:center;background:var(--night2);border-radius:10px;padding:1vh 1.2vw;font-size:clamp(14px,1.5vw,28px)}
+.stage .lb li.vip{background:#2B3414;outline:2px solid var(--ball)}
+.stage .lb li.empty{display:block;background:transparent;color:var(--grey);font-family:var(--serif);font-style:italic;font-size:clamp(18px,2vw,36px)}
+.lb .rk{font-family:var(--mono);font-weight:700;color:var(--ball)}
+.lb .nm{font-family:var(--display);text-transform:uppercase;font-size:1.25em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb .sc{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lb .st{font-family:var(--mono);font-weight:700;font-size:.8em;letter-spacing:1px;padding:4px 10px;border-radius:6px;white-space:nowrap}
+.st.won{background:var(--ball);color:var(--night)} .st.play{background:#2A3350;color:var(--chalk)} .st.lost{background:var(--signal);color:var(--night)}
+.note{font-family:var(--mono)!important;font-style:normal!important;font-size:clamp(11px,1vw,18px)!important;color:var(--grey);margin:0!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app" id="app">
+  <section class="screen intro" id="s-intro">
+    <div class="mark"><svg aria-hidden="true" width="26" height="31" viewBox="0 0 200 240"><circle cx="100" cy="60" r="50" fill="#DCF24E"/><path d="M57 32 C 80 48, 80 72, 57 88" fill="none" stroke="#0B1020" stroke-width="7" stroke-linecap="round"/><path d="M143 32 C 120 48, 120 72, 143 88" fill="none" stroke="#0B1020" stroke-width="7" stroke-linecap="round"/><path d="M14 120 L54 120 L100 196 L146 120 L186 120 L118 236 L82 236 Z" fill="#F3F0E7"/></svg><span class="eyebrow">#CarryTonVIP · Arthur Ashe · 25.08.2027</span></div>
+    <h1>Le <span>match</span><br>de la classe</h1>
+    <p class="lead">Ton adversaire : la pub TV à 500 000 €. Ton partenaire : une star HEAD.</p>
+    <ul class="rules">
+      <li><b>01</b><span>Tape l’écran quand la balle passe dans la bande lime pour la renvoyer.</span></li>
+      <li><b>02</b><span>Après deux renvois, ta star monte au filet : réponds à la question pour gagner le point.</span></li>
+      <li><b>03</b><span>Un jeu, comme au vrai tennis : 15, 30, 40, jeu. Les plus rapides gagnent le pass VIP.</span></li>
+    </ul>
+    <label class="f"><span class="eyebrow">Ton prénom</span><input id="pseudo" maxlength="14" autocomplete="off" placeholder="Ex. Léa"></label>
+    <div class="pick" role="group" aria-label="Choisis ta star">
+      <button type="button" id="p-djoko" aria-pressed="true" data-star="DJOKOVIC"><span class="n">Djokovic</span><span class="s">Revers à deux mains</span></button>
+      <button type="button" id="p-gauff" aria-pressed="false" data-star="GAUFF"><span class="n">Gauff</span><span class="s">Coup droit fusée</span></button>
+    </div>
+    <button class="cta" id="go" type="button">Entrer sur le court</button>
+    <p class="foot">Projet étudiant AMOS Lyon · jeu fictif, non officiel · rien n’est envoyé, tout reste sur ton téléphone</p>
+  </section>
+
+  <section class="screen" id="s-game" hidden>
+    <div class="board" aria-live="polite">
+      <div class="row"><span class="serve" id="srv-me"></span><span id="name-me">TOI + DJOKOVIC</span><span class="pts" id="pts-me">0</span></div>
+      <div class="row opp"><span class="serve" id="srv-op" style="visibility:hidden"></span><span>PUB TV ESPN</span><span class="pts" id="pts-op">0</span></div>
+      <div class="status" id="status">PREMIER POINT</div>
+    </div>
+    <div class="courtwrap" id="court">
+      <canvas id="cv" aria-label="Court de tennis : tape l’écran pour renvoyer la balle"></canvas>
+      <div class="flash" id="flash"></div>
+      <div class="hint" id="hint">TAPE QUAND LA BALLE EST DANS LA BANDE</div>
+      <div class="q" id="qbox" hidden>
+        <span class="tag" id="qtag">BALLE DE POINT · TA STAR MONTE AU FILET</span>
+        <h2 id="qtext"></h2>
+        <div class="timer"><i id="qtimer"></i></div>
+        <div class="opts" id="qopts"></div>
+        <p class="why" id="qwhy" hidden></p>
+        <button class="cta" id="qnext" type="button" hidden>Point suivant</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen end" id="s-end" hidden>
+    <span class="eyebrow" id="e-eyebrow">Jeu, set et match</span>
+    <h2 id="e-title">Tu as battu la pub TV</h2>
+    <p class="sub" id="e-sub">Bienvenue parmi les VIP.</p>
+    <div class="stats">
+      <div class="stat"><span>Temps</span><b id="e-time">0:00</b></div>
+      <div class="stat"><span>Bonnes réponses</span><b id="e-ok">0/0</b></div>
+      <div class="stat"><span>Renvois parfaits</span><b id="e-perfect">0</b></div>
+    </div>
+    <div class="code"><span>CODE DU MATCH</span><b id="e-code">----</b></div>
+    <p class="foot" id="e-foot">Montre ton écran : le match gagné le plus vite remporte le pass VIP de la classe.</p>
+    <button class="cta" id="again" type="button">Rejouer</button>
+  </section>
+</div>
+
+<section class="stage" id="stage" hidden>
+  <div class="lcol">
+    <span class="eyebrow">#CarryTonVIP · le match de la classe</span>
+    <h1>Scanne.<br>Joue.<br><span>Bats la pub TV.</span></h1>
+    <div class="qr"><svg role="img" aria-label="QR code vers le jeu" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 350" class="segno"><path transform="scale(10)" class="qrline" stroke="#0b1020" d="M1 1.5h7m1 0h1m2 0h1m1 0h2m4 0h3m1 0h1m2 0h7m-33 1h1m5 0h1m2 0h3m1 0h3m2 0h1m5 0h1m1 0h1m5 0h1m-33 1h1m1 0h3m1 0h1m5 0h1m5 0h2m1 0h1m1 0h2m1 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m2 0h4m2 0h1m1 0h4m1 0h1m3 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h1m2 0h3m1 0h1m2 0h6m2 0h1m1 0h3m1 0h1m-33 1h1m5 0h1m1 0h5m2 0h1m2 0h1m1 0h2m4 0h1m5 0h1m-33 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-24 1h2m5 0h1m1 0h1m2 0h2m1 0h1m-24 1h7m6 0h2m1 0h1m1 0h1m2 0h1m1 0h1m2 0h2m3 0h1m-29 1h1m2 0h2m1 0h14m2 0h2m1 0h2m1 0h1m-33 1h1m2 0h5m1 0h1m1 0h2m1 0h4m2 0h1m4 0h2m1 0h1m1 0h2m-31 1h1m1 0h2m2 0h1m1 0h1m1 0h3m1 0h2m3 0h2m1 0h1m2 0h1m1 0h5m-33 1h2m1 0h1m2 0h1m1 0h1m2 0h1m2 0h1m3 0h2m2 0h1m1 0h2m1 0h3m1 0h1m-32 1h2m3 0h1m4 0h4m4 0h6m2 0h2m3 0h2m-33 1h1m1 0h7m1 0h1m3 0h1m2 0h1m3 0h2m2 0h7m-31 1h2m1 0h2m1 0h3m2 0h2m2 0h6m1 0h5m1 0h2m-29 1h3m1 0h2m3 0h2m2 0h2m1 0h1m3 0h1m1 0h2m1 0h3m2 0h1m-33 1h1m1 0h2m1 0h1m2 0h1m3 0h1m2 0h2m2 0h1m3 0h1m2 0h2m1 0h2m1 0h1m-33 1h1m1 0h1m2 0h4m1 0h2m2 0h1m5 0h2m2 0h1m1 0h3m1 0h2m-30 1h4m3 0h1m1 0h2m2 0h2m1 0h1m1 0h4m1 0h1m1 0h4m1 0h1m-32 1h3m1 0h4m1 0h4m1 0h1m2 0h1m1 0h1m1 0h4m1 0h3m1 0h2m-33 1h2m1 0h1m1 0h1m3 0h2m4 0h3m1 0h2m1 0h2m2 0h1m2 0h2m1 0h1m-33 1h1m4 0h2m2 0h1m1 0h1m9 0h1m3 0h2m3 0h2m-32 1h1m2 0h1m3 0h2m1 0h1m5 0h2m1 0h5m5 0h2m1 0h1m-33 1h1m1 0h6m1 0h2m2 0h1m2 0h1m2 0h1m2 0h7m2 0h2m-25 1h4m1 0h2m2 0h6m1 0h1m3 0h1m1 0h1m1 0h1m-33 1h7m1 0h2m2 0h1m3 0h3m2 0h4m1 0h1m1 0h1m1 0h1m-31 1h1m5 0h1m1 0h3m5 0h1m1 0h1m1 0h2m1 0h2m3 0h5m-33 1h1m1 0h3m1 0h1m1 0h1m1 0h1m6 0h2m3 0h1m1 0h6m1 0h1m-32 1h1m1 0h3m1 0h1m1 0h2m3 0h1m1 0h1m1 0h1m1 0h3m1 0h3m2 0h1m3 0h1m-33 1h1m1 0h3m1 0h1m1 0h5m1 0h1m2 0h2m1 0h1m3 0h1m1 0h2m2 0h1m-31 1h1m5 0h1m1 0h1m1 0h1m3 0h2m1 0h1m1 0h4m2 0h2m1 0h3m-31 1h7m2 0h1m2 0h1m4 0h4m1 0h1m1 0h4m1 0h1m1 0h1"/></svg>
+<span class="lbl">SCANNE POUR JOUER</span></div>
+    <div class="clock"><b id="clk">3:00</b><div class="cbtn"><button class="cta" id="clkgo" type="button">Lancer la partie</button><button class="ghost" id="stop" type="button">Arrêter</button></div></div>
+  </div>
+  <div class="rcol">
+    <div class="bhead"><h2 id="btitle">En direct</h2><span class="eyebrow" id="bcount">0 joueur</span></div>
+    <ol class="lb" id="lb"><li class="empty">Les prénoms apparaissent ici dès qu’ils lancent leur match.</li></ol>
+    <p class="note" id="bnote">Classement : matchs gagnés d’abord (les plus rapides en tête), puis les matchs en cours.</p>
+  </div>
+</section>
+
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const Q=[
+ ['Quel est le hashtag de la campagne ?',['#CarryTonVIP','#PorteTaStar','#HeadOpen','#USOpenFans'],'C’est le nom du défi : le fan porte son idole.'],
+ ['Combien de fans jouent à Arthur Ashe le 25 août ?',['8','20','4','100'],'8 fans, un par star HEAD, en double mixte.'],
+ ['Combien de temps dure la vidéo du défi ?',['60 secondes','15 secondes','3 minutes','30 secondes'],'60 secondes : un talent, un beau point ou une blague.'],
+ ['Quel média avons-nous écarté ?',['La pub TV ESPN','TikTok','Tennis Clash','L’emailing'],'9 sur 15 dans notre grille : trop cher pour 120 000 €.'],
+ ['Quel est le budget communication ?',['120 000 €','1 million €','50 000 €','250 000 €'],'120 000 € sur six mois, dont 10 % de réserve.'],
+ ['Quelle réduction ont les participants au défi ?',['-30 % sur le billet','-10 %','-50 %','Le billet gratuit'],'Un billet à 17,50 € au lieu de 25 €.'],
+ ['Comment s’appelle la nouvelle raquette ?',['Headshot V-Bridge','Speed Pro','Radical Max','Gravity One'],'Son cœur en V rappelle le logo de la campagne.'],
+ ['Que représente le V du logo ?',['Les bras d’un fan qui porte la balle','Le V de victoire','Un oiseau','Le V de Vamos'],'Le fan lève les bras et porte la balle : la star.'],
+ ['Quel jeu vidéo est notre partenaire ?',['Tennis Clash','Mario Tennis','Fortnite','EA Sports FC'],'Un tournoi HEAD dans le jeu, 170 millions de téléchargements.'],
+ ['Quand se termine le défi vidéo ?',['Le 31 mai 2027','Le 25 août 2027','Le 1er avril 2027','Le 14 juillet 2027'],'Du 1er avril au 31 mai, puis le vote en juin.'],
+ ['Quelle part du budget est gardée en réserve ?',['Environ 10 %','0 %','25 %','50 %'],'11 500 € débloqués pour les canaux qui marchent.'],
+ ['Combien de vidéos #CarryTonVIP visons-nous ?',['15 000','1 500','150','1 million'],'C’est notre KPI principal sur TikTok et Instagram.'],
+ ['Quel outil suit le budget chaque semaine ?',['Le tableau prévu, réel, écart','Un sondage Instagram','Le nombre de likes','Aucun'],'Chaque écart déclenche une action.'],
+];
+const SB='https://hkqlyqxrofltuznrdafe.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrcWx5cXhyb2ZsdHV6bnJkYWZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzY2MTAsImV4cCI6MjA5NTkxMjYxMH0.YUpNm_X58pP34GF3wo0zTP9oNbSPUfQ0Eq0xmmP8314',ROOM='oral';
+const HDR={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
+function uid(){try{return crypto.randomUUID()}catch(e){return 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g,()=>(Math.random()*16|0).toString(16))}}
+function send(status){if(!S)return;const secs=Math.round((performance.now()-S.start)/1000);
+  fetch(SB+'/rest/v1/ctv_events',{method:'POST',headers:Object.assign({'Prefer':'return=minimal'},HDR),keepalive:true,
+  body:JSON.stringify({room:ROOM,player:S.pid,name:S.name,me:S.me,op:S.op,ok:S.ok,asked:S.asked,status,secs})}).catch(()=>{})}
+const PT=['0','15','30','40'];
+let S=null, star='DJOKOVIC', audio=null;
+
+function tone(f,d){try{if(!audio)audio=new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=f;o.type='triangle';g.gain.setValueAtTime(.18,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch(e){}}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function show(id){['s-intro','s-game','s-end'].forEach(s=>$(s).hidden=s!==id)}
+
+// ---------- intro
+['p-djoko','p-gauff'].forEach(id=>$(id).addEventListener('click',()=>{star=$(id).dataset.star;['p-djoko','p-gauff'].forEach(x=>$(x).setAttribute('aria-pressed',x===id))}));
+try{const n=localStorage.getItem('ctv-name');if(n)$('pseudo').value=n}catch(e){}
+$('go').addEventListener('click',start);
+$('again').addEventListener('click',()=>{show('s-intro')});
+
+function start(){
+  const name=($('pseudo').value.trim()||'Toi').slice(0,14);
+  try{localStorage.setItem('ctv-name',name)}catch(e){}
+  S={name,me:0,op:0,hits:0,need:2,phase:'serve',t:0,dir:1,x0:.5,x1:.5,dur:1500,t0:0,pool:shuffle(Q),qi:0,ok:0,asked:0,perfect:0,start:performance.now(),played:0,flashT:0,pid:uid()};send('join');
+  $('name-me').textContent=(name.toUpperCase()+' + '+star);
+  show('s-game');resize();updateBoard();
+  tone(660,.08);
+  nextPoint(true);
+}
+
+// ---------- court
+const cv=$('cv'),cx=cv.getContext('2d');let W=0,H=0,DPR=1;
+function resize(){const r=$('court').getBoundingClientRect();DPR=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=W*DPR;cv.height=H*DPR;cx.setTransform(DPR,0,0,DPR,0,0)}
+window.addEventListener('resize',()=>{if(S)resize()});
+const TOP=.1,BOT=.9,Z0=.76,Z1=.93,ZC=.85;
+function yAt(t){return H*(TOP+(BOT-TOP)*t)}
+function halfW(t){return W*(.30+.16*t)}
+function xAt(t,u){return W/2+(u-.5)*2*halfW(t)}
+function drawCourt(){
+  cx.fillStyle='#0B1020';cx.fillRect(0,0,W,H);
+  const p=(t,u)=>[xAt(t,u),yAt(t)];
+  cx.fillStyle='#2346C8';cx.beginPath();[[-0.02,-.08],[-0.02,1.08],[1.02,1.08],[1.02,-.08]].forEach(([t,u],i)=>{const [x,y]=p(t,u);i?cx.lineTo(x,y):cx.moveTo(x,y)});cx.closePath();cx.fill();
+  cx.strokeStyle='#F3F0E7';cx.lineWidth=2;
+  const line=(t0,u0,t1,u1)=>{cx.beginPath();cx.moveTo(...p(t0,u0));cx.lineTo(...p(t1,u1));cx.stroke()};
+  line(0,0,1,0);line(0,1,1,1);line(0,0,0,1);line(1,0,1,1);line(.25,0,.25,1);line(.75,0,.75,1);line(.25,.5,.75,.5);
+  // net
+  cx.strokeStyle='rgba(243,240,231,.9)';cx.lineWidth=4;line(.5,-.08,.5,1.08);
+  // zone
+  const inZ=S&&S.phase==='in'&&S.t>=Z0&&S.t<=Z1;
+  cx.fillStyle=inZ?'rgba(220,242,78,.42)':'rgba(220,242,78,.2)';
+  cx.beginPath();[[Z0,-.08],[Z1,-.08],[Z1,1.08],[Z0,1.08]].forEach(([t,u],i)=>{const [x,y]=p(t,u);i?cx.lineTo(x,y):cx.moveTo(x,y)});cx.closePath();cx.fill();
+  cx.fillStyle='#F3F0E7';cx.font='700 11px "JetBrains Mono",monospace';cx.textAlign='center';
+  cx.fillText('PUB TV',W/2,yAt(0)-12);
+}
+function drawBall(){
+  if(!S||!(S.phase==='in'||S.phase==='out'))return;
+  const t=S.t,u=S.x0+(S.x1-S.x0)*(S.phase==='in'?t:1-t);
+  const x=xAt(t,u),y=yAt(t),r=5+7*t;
+  const arc=Math.sin(Math.PI*(S.phase==='in'?t:1-t))*H*.06;
+  cx.fillStyle='rgba(0,0,0,.35)';cx.beginPath();cx.ellipse(x,y+2,r,r*.45,0,0,7);cx.fill();
+  cx.fillStyle='#DCF24E';cx.beginPath();cx.arc(x,y-arc,r,0,7);cx.fill();
+  cx.strokeStyle='#0B1020';cx.lineWidth=1.5;cx.beginPath();cx.arc(x-r*.9,y-arc,r*.8,-.9,.9);cx.stroke();
+}
+function loop(now){
+  if(S&&$('s-game').hidden===false){
+    if(S.phase==='in'||S.phase==='out'){
+      const k=(now-S.t0)/S.dur;
+      if(S.phase==='in'){S.t=Math.min(1.08,k);if(S.t>=1.06){fault('Trop tard !')}}
+      else{S.t=Math.max(0,1-k*1.6);if(S.t<=0)incoming()}
+    }
+    drawCourt();drawBall();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function incoming(){S.phase='in';S.t=0;S.t0=performance.now();S.x0=.2+Math.random()*.6;S.x1=.2+Math.random()*.6;S.dur=Math.max(780,1500-S.played*70-S.hits*60)}
+function nextPoint(first){
+  S.hits=0;$('qbox').hidden=true;$('hint').hidden=false;
+  $('status').textContent=statusText();
+  setTimeout(()=>{if(S)incoming()},first?700:500);
+}
+function flash(txt,col){const f=$('flash');f.textContent=txt;f.style.color=col||'#F3F0E7';clearTimeout(S.flashT);S.flashT=setTimeout(()=>f.textContent='',650)}
+function tap(e){
+  if(!S||S.phase!=='in')return;
+  e.preventDefault();
+  if(S.t<.55)return;
+  if(S.t<Z0){fault('Trop tôt !');return}
+  if(S.t>Z1){fault('Trop tard !');return}
+  const perfect=Math.abs(S.t-ZC)<.035;if(perfect)S.perfect++;
+  tone(perfect?880:620,.07);flash(perfect?'Parfait':'Bien joué',perfect?'#DCF24E':'#F3F0E7');
+  S.hits++;
+  if(S.hits>=S.need){S.phase='out';S.t0=performance.now();S.dur=900;setTimeout(ask,450);S.phase='wait';}
+  else{S.phase='out';S.t0=performance.now();S.dur=Math.max(700,S.dur*.92)}
+}
+$('court').addEventListener('pointerdown',tap);
+document.addEventListener('keydown',e=>{if((e.code==='Space'||e.code==='Enter')&&S&&S.phase==='in')tap(e)});
+
+function fault(msg){S.phase='wait';tone(180,.2);flash(msg,'#FF5A36');award(false)}
+function award(meWins){
+  S.played++;if(meWins)S.me++;else S.op++;updateBoard();send('play');
+  const done=(S.me>=4||S.op>=4)&&Math.abs(S.me-S.op)>=2;
+  if(done){setTimeout(finish,900);return}
+  if(S.played>=16){setTimeout(finish,900);return}
+  setTimeout(()=>nextPoint(false),900);
+}
+function scoreText(a,b){if(a>=3&&b>=3){return a===b?'40':a>b?'AV':'40'}return PT[Math.min(a,3)]}
+function updateBoard(){
+  $('pts-me').textContent=scoreText(S.me,S.op);$('pts-op').textContent=scoreText(S.op,S.me);
+  $('status').textContent=statusText();
+}
+function statusText(){
+  const a=S.me,b=S.op;
+  if(a>=3&&b>=3){if(a===b)return 'ÉGALITÉ';return a>b?'AVANTAGE '+S.name.toUpperCase():'AVANTAGE PUB TV'}
+  if(a===3&&b<3)return 'BALLE DE JEU';
+  if(b===3&&a<3)return 'BALLE DE JEU PUB TV';
+  return a+b===0?'PREMIER POINT':'POINT Nº '+(a+b+1);
+}
+
+// ---------- question
+let qTimer=null;
+function ask(){
+  const [q,opts,why]=S.pool[S.qi++%S.pool.length];S.asked++;
+  const right=opts[0],mixed=shuffle(opts);
+  $('qtext').textContent=q;$('qwhy').hidden=true;$('qnext').hidden=true;$('hint').hidden=true;
+  $('qtag').textContent='BALLE DE POINT · '+star+' MONTE AU FILET';
+  const box=$('qopts');box.textContent='';
+  mixed.forEach((o,i)=>{const b=document.createElement('button');b.type='button';b.id='opt'+i;b.textContent=o;b.addEventListener('click',()=>answer(o===right,b,right,why));box.appendChild(b)});
+  $('qbox').hidden=false;
+  const bar=$('qtimer');const T=10000,t0=performance.now();
+  cancelAnimationFrame(qTimer);
+  const tick=n=>{const k=1-(n-t0)/T;bar.style.transform='scaleX('+Math.max(0,k)+')';if(k<=0){answer(false,null,right,why,true);return}qTimer=requestAnimationFrame(tick)};
+  qTimer=requestAnimationFrame(tick);
+}
+function answer(ok,btn,right,why,timeout){
+  cancelAnimationFrame(qTimer);
+  const btns=[...$('qopts').children];if(btns.some(b=>b.disabled))return;
+  btns.forEach(b=>{b.disabled=true;if(b.textContent===right)b.classList.add('ok')});
+  if(btn&&!ok)btn.classList.add('ko');
+  if(ok)S.ok++;
+  $('qwhy').textContent=(timeout?'Temps écoulé. ':ok?'Coup gagnant de '+star.charAt(0)+star.slice(1).toLowerCase()+' ! ':'Raté. ')+why;$('qwhy').hidden=false;
+  tone(ok?990:160,ok?.15:.25);
+  $('qnext').hidden=false;$('qnext').focus({preventScroll:true});
+  $('qnext').onclick=()=>{$('qbox').hidden=true;award(ok)};
+}
+
+// ---------- end
+function finish(){
+  const win=S.me>S.op,secs=Math.round((performance.now()-S.start)/1000);
+  const mm=Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');
+  $('e-eyebrow').textContent=win?'Jeu, set et match':'Jeu pour la pub TV';
+  $('e-title').textContent=win?'Tu as battu la pub TV':'La pub TV a gagné';
+  $('e-sub').textContent=win?'Bienvenue parmi les VIP, '+S.name+'.':'Elle coûte 500 000 €, elle. Rejoue !';
+  $('e-time').textContent=mm;$('e-ok').textContent=S.ok+'/'+S.asked;$('e-perfect').textContent=S.perfect;
+  let h=7;const str=S.name+'|'+mm+'|'+S.ok+'|'+S.asked+'|'+(win?1:0);for(const c of str)h=(h*31+c.charCodeAt(0))>>>0;
+  $('e-code').textContent=(win?'V':'X')+mm.replace(':','')+'-'+(h%1296).toString(36).toUpperCase().padStart(2,'0');
+  $('e-foot').textContent=win?'Montre ton écran : le match gagné le plus vite remporte le pass VIP de la classe.':'Retente ta chance : il reste du temps au chrono.';
+  S.phase='done';send(win?'won':'lost');show('s-end');tone(win?1180:140,.4);
+}
+
+// ---------- presenter screen (#ecran): live class leaderboard
+function route(){const st=location.hash==='#ecran';$('stage').hidden=!st;$('app').hidden=st;if(st)boot()}
+window.addEventListener('hashchange',route);
+let base=0,last=0,booted=false,ended=false,clk=null,poll=null;const P=new Map();
+function rd(k,d){try{const v=localStorage.getItem(k);return v===null?d:+v}catch(e){return d}}
+function wr(k,v){try{localStorage.setItem(k,String(v))}catch(e){}}
+async function maxId(){try{const r=await fetch(SB+'/rest/v1/ctv_events?select=id&order=id.desc&limit=1',{headers:HDR});const j=await r.json();return j.length?j[0].id:0}catch(e){return null}}
+async function pull(){
+  try{const r=await fetch(SB+'/rest/v1/ctv_events?select=id,player,name,me,op,ok,asked,status,secs&room=eq.'+ROOM+'&id=gt.'+Math.max(base,last)+'&order=id.asc&limit=1000',{headers:HDR});
+    if(!r.ok)throw 0;const rows=await r.json();
+    rows.forEach(e=>{last=Math.max(last,e.id);P.set(e.player,e)});
+    $('bnote').textContent='Classement : matchs gagnés d’abord (les plus rapides en tête), puis les matchs en cours.';
+    render();
+  }catch(e){$('bnote').textContent='Connexion au classement impossible pour l’instant : vérifie le Wi-Fi du PC.'}
+}
+function sc(a,b){if(a>=3&&b>=3){return a===b?'40–40':a>b?'AV–40':'40–AV'}return PT[Math.min(a,3)]+'–'+PT[Math.min(b,3)]}
+function rank(e){return e.status==='won'?[0,e.secs,-e.ok]:e.status==='play'||e.status==='join'?[1,-(e.me-e.op),-e.ok]:[2,-e.ok,e.secs]}
+function cmp(a,b){const x=rank(a),y=rank(b);for(let i=0;i<3;i++){if(x[i]!==y[i])return x[i]-y[i]}return 0}
+function render(){
+  const best=new Map();
+  P.forEach(e=>{const k=e.name.trim().toLowerCase();const o=best.get(k);if(!o||cmp(e,o)<0)best.set(k,e)});
+  const list=[...best.values()].sort(cmp);
+  $('bcount').textContent=list.length+(list.length>1?' joueurs':' joueur');
+  $('btitle').textContent=ended?'Les 8 VIP de la classe':'En direct';
+  const lb=$('lb');lb.textContent='';
+  if(!list.length){const li=document.createElement('li');li.className='empty';li.textContent='Les prénoms apparaissent ici dès qu’ils lancent leur match.';lb.appendChild(li);return}
+  list.slice(0,ended?8:12).forEach((e,i)=>{
+    const li=document.createElement('li');if(ended||e.status==='won')li.className=i<8&&e.status==='won'?'vip':'';
+    const rk=document.createElement('span');rk.className='rk';rk.textContent=String(i+1).padStart(2,'0');
+    const nm=document.createElement('span');nm.className='nm';nm.textContent=e.name;
+    const s2=document.createElement('span');s2.className='sc';
+    const m=Math.floor(e.secs/60)+':'+String(e.secs%60).padStart(2,'0');
+    s2.textContent=(e.status==='won'||e.status==='lost'?m+' · ':sc(e.me,e.op)+' · ')+e.ok+'/'+e.asked;
+    const st=document.createElement('span');st.className='st '+(e.status==='won'?'won':e.status==='lost'?'lost':'play');
+    st.textContent=e.status==='won'?'GAGNÉ':e.status==='lost'?'PERDU':'EN JEU';
+    li.append(rk,nm,s2,st);lb.appendChild(li);
+  });
+}
+function tickClock(endAt){clearInterval(clk);const f=()=>{const s=Math.max(0,Math.round((endAt-Date.now())/1000));$('clk').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');if(s<=0){clearInterval(clk);$('clk').textContent='STOP';ended=true;render()}};f();clk=setInterval(f,500)}
+async function boot(){
+  if(booted)return;booted=true;
+  base=rd('ctv-base',0);const endAt=rd('ctv-end',0);
+  if(!base){const m=await maxId();base=m||0;wr('ctv-base',base)}
+  if(endAt&&endAt>Date.now())tickClock(endAt);else if(endAt){ended=true;$('clk').textContent='STOP'}
+  pull();poll=setInterval(pull,1500);
+}
+$('clkgo').addEventListener('click',async()=>{
+  const m=await maxId();base=m===null?last:m;last=base;P.clear();ended=false;wr('ctv-base',base);
+  const endAt=Date.now()+180000;wr('ctv-end',endAt);$('clkgo').textContent='Nouvelle partie';tickClock(endAt);render();
+});
+$('stop').addEventListener('click',()=>{wr('ctv-end',Date.now());clearInterval(clk);$('clk').textContent='STOP';ended=true;render()});
+route();
+})();
+</script>
+</body></html>
